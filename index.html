@@ -1,1 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>NEOPILLAR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ui-bg: rgba(15, 23, 42, 0.85);
+            --ui-text: #ffffff;
+            --ui-border: rgba(255, 255, 255, 0.2);
+            --panel-bg: rgba(15, 23, 42, 0.7);
+        }
 
+        body.light-theme {
+            --ui-bg: rgba(248, 250, 252, 0.9);
+            --ui-text: #0f172a;
+            --ui-border: rgba(15, 23, 42, 0.2);
+            --panel-bg: rgba(241, 245, 249, 0.8);
+        }
+
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; 
+            background: #000; user-select: none; -webkit-user-select: none; 
+            touch-action: none; font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+        }
+        
+        #app-container {
+            width: 100%;
+            height: 100%;
+            transition: background 3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1;
+        }
+
+        /* Environments */
+        .env-earth-day { background: linear-gradient(to bottom, #0081ff 0%, #76dbff 100%); }
+        .env-earth-sunset { background: linear-gradient(to bottom, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%); }
+        .env-earth-night { background: linear-gradient(to bottom, #020111 0%, #050520 100%); }
+        .env-mars { background: linear-gradient(to bottom, #1a0a05 0%, #4d1a0a 100%); }
+        .env-asteroids { background: radial-gradient(circle at center, #0f0f0f 0%, #000 100%); }
+        .env-jupiter { background: radial-gradient(circle at center, #1a1510 0%, #000 100%); }
+        .env-saturn { background: radial-gradient(circle at center, #1e1a10 0%, #000 100%); }
+        .env-uranus { background: radial-gradient(circle at center, #0e1a1e 0%, #000 100%); }
+        .env-neptune { background: radial-gradient(circle at center, #0a0a20 0%, #000 100%); }
+        .env-galaxy { background: radial-gradient(circle at center, #1a0a2a 0%, #000 100%); }
+
+        /* Light Mode Specific Overrides for Space Themes */
+        body.light-theme .env-earth-night { background: linear-gradient(to bottom, #e0f2fe 0%, #bae6fd 100%); }
+        body.light-theme .env-mars { background: linear-gradient(to bottom, #fef2f2 0%, #fee2e2 100%); }
+        body.light-theme .env-jupiter { background: radial-gradient(circle at center, #fff7ed 0%, #ffedd5 100%); }
+
+        .celestial {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(0, 0) scale(0);
+        }
+
+        .sun { width: 120px; height: 120px; background: #ffeb3b; box-shadow: 0 0 0 10px rgba(255, 235, 59, 0.2), 0 0 40px rgba(255, 235, 59, 0.4); top: 40px; right: 40px; transform: scale(1); opacity: 1; z-index: 2; }
+        .moon { width: 100px; height: 100px; background: radial-gradient(circle at 30% 30%, #f5f5f5 0%, #e0e0e0 100%); box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2), 0 0 30px rgba(255, 255, 255, 0.1); top: 40px; right: 40px; transform: scale(1); z-index: 2; }
+        
+        /* Mobile Scaling for Celestial Bodies */
+        @media (max-width: 768px) {
+            .sun, .moon { width: 80px; height: 80px; top: 20px; right: 20px; }
+            .mars-planet { width: 200px; height: 200px; }
+            .jupiter-planet { width: 300px; height: 300px; }
+            .saturn-container { width: 500px; height: 250px; }
+            .saturn-planet { width: 150px; height: 150px; }
+            .saturn-rings { width: 450px; height: 130px; }
+        }
+
+        .mars-planet { width: 300px; height: 300px; top: 50%; left: 50%; background: radial-gradient(circle at 30% 30%, #ff4d00, #8b0000); box-shadow: inset -30px -30px 60px rgba(0,0,0,0.8), 0 0 40px rgba(255, 77, 0, 0.2); }
+        .jupiter-planet { width: 500px; height: 500px; top: 50%; left: 50%; background: radial-gradient(circle at 75% 65%, rgba(139, 0, 0, 0.9) 0%, transparent 7%), repeating-linear-gradient(15deg, #3d2b1f 0%, #3d2b1f 4%, #5c4033 6%, #a67c52 14%, #d9b99b 18%, #7a5230 22%); box-shadow: inset -60px -60px 100px rgba(0,0,0,0.95); }
+        .saturn-container { width: 800px; height: 400px; top: 50%; left: 50%; display: flex; justify-content: center; align-items: center; }
+        .saturn-planet { width: 300px; height: 300px; background: #e2c08d; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #f4e4bc, #b38d5d); box-shadow: inset -40px -40px 80px rgba(0,0,0,0.8); position: relative; z-index: 2; }
+        .saturn-rings { position: absolute; top: 50%; left: 50%; width: 750px; height: 220px; border-radius: 50%; transform: translate(-50%, -50%) rotateX(75deg) rotateY(-10deg); background: repeating-radial-gradient(circle at center, transparent 0, transparent 150px, rgba(226, 192, 141, 0.3) 151px, rgba(226, 192, 141, 0.1) 180px, transparent 181px, transparent 190px, rgba(226, 192, 141, 0.4) 191px, rgba(226, 192, 141, 0.2) 240px); box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1; }
+        .uranus-planet { width: 350px; height: 350px; top: 50%; left: 50%; background: #afeeee; box-shadow: inset -30px -30px 60px rgba(0,0,0,0.5); }
+        .neptune-planet { width: 350px; height: 350px; top: 50%; left: 50%; background: #4169e1; box-shadow: inset -40px -40px 80px rgba(0,0,0,0.8); }
+        .galaxy-container { width: 1000px; height: 1000px; top: 50%; left: 50%; display: flex; justify-content: center; align-items: center; }
+        .galaxy-core { width: 100px; height: 100px; background: #fff; border-radius: 50%; box-shadow: 0 0 100px #fff, 0 0 200px #4b0082, 0 0 400px rgba(75, 0, 130, 0.5); filter: blur(5px); }
+        .galaxy-spiral { position: absolute; width: 900px; height: 900px; background: radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(75,0,130,0.1) 30%, transparent 70%); border-radius: 50%; animation: rotateGalaxy 120s linear infinite; }
+        @keyframes rotateGalaxy { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .cloud-group { position: absolute; animation: moveClouds var(--speed) linear infinite; }
+        .cloud-part { position: absolute; background: white; border-radius: 50%; filter: blur(8px); opacity: 0.9; }
+        @keyframes moveClouds { from { transform: translateX(-400px); } to { transform: translateX(calc(100vw + 400px)); } }
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0; transition: opacity 2s; }
+        body.light-theme .star { background: #334155; }
+        .asteroid { position: absolute; background: #444; opacity: 0; clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); animation: drift var(--duration) linear infinite; }
+        @keyframes drift { from { transform: translate(0, 0) rotate(0deg); } to { transform: translate(var(--moveX), var(--moveY)) rotate(360deg); } }
+
+        #game-ui { position: absolute; inset: 0; pointer-events: none; z-index: 50; display: flex; flex-direction: column; align-items: center; color: white; }
+        body.light-theme #game-ui { color: #0f172a; }
+        #score { font-size: 6rem; font-weight: 900; margin-top: 40px; text-shadow: 0 0 20px rgba(0, 0, 0, 0.5); }
+        
+        @media (max-width: 768px) {
+            #score { font-size: 4rem; margin-top: 20px; }
+        }
+
+        #replica-panel { position: fixed; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+        .info-pill { display: flex; align-items: center; justify-content: flex-start; gap: 12px; background: var(--ui-bg); padding: 8px 18px; border-radius: 50px; backdrop-filter: blur(16px); border: 2px solid var(--ui-border); color: var(--ui-text); min-width: 140px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .info-label { font-size: 0.65rem; opacity: 0.8; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; }
+        .info-value-container { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+        .info-value { font-weight: 900; font-size: 1.1rem; }
+
+        @media (max-width: 480px) {
+            #replica-panel { top: auto; bottom: 20px; left: 20px; flex-direction: row; }
+            .info-pill { min-width: 100px; padding: 6px 12px; }
+        }
+
+        .coin-icon { width: 18px; height: 18px; animation: rotateCoin 2s linear infinite; }
+        @keyframes rotateCoin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+
+        #blocks-poster { position: fixed; top: 20px; right: 20px; z-index: 9999; background: var(--panel-bg); backdrop-filter: blur(10px); border: 1px solid var(--ui-border); padding: 12px; border-radius: 20px; display: flex; gap: 12px; pointer-events: none; transition: all 0.5s; opacity: 0; }
+        .poster-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .poster-cube { width: 34px; height: 22px; border-radius: 4px; position: relative; transform: skewY(-12deg); box-shadow: 4px 4px 0 rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.3); background-size: contain; overflow: hidden; }
+        .poster-label { font-size: 0.6rem; font-weight: 900; color: white; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
+        body.light-theme .poster-label { color: #0f172a; }
+
+        @media (max-width: 480px) {
+            #blocks-poster { top: auto; bottom: 80px; right: 20px; padding: 8px; border-radius: 12px; }
+        }
+
+        #ghost-warning { background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 12px; border: 2px solid #ffffff; display: flex; align-items: center; gap: 10px; opacity: 0; transition: all 0.5s; transform: translateY(-20px); }
+        #ghost-warning.active { opacity: 1; transform: translateY(0); }
+        
+        #vision-prompt {
+            position: fixed;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.8), 0 0 40px rgba(0,0,0,0.5);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60;
+            transition: opacity 0.1s;
+        }
+
+        @media (max-width: 768px) {
+            #vision-prompt { font-size: 1.5rem; }
+        }
+
+        .flash { animation: flash-glow 0.1s infinite alternate; }
+        @keyframes flash-glow { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 40px rgba(74, 222, 128, 1); } }
+
+        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--ui-bg); backdrop-filter: blur(10px); z-index: 80; color: var(--ui-text); text-align: center; padding: 20px; }
+        #start-screen { background: radial-gradient(circle at center, #0369a1 0%, #020617 100%); z-index: 90; color: white; }
+        body.light-theme #start-screen { background: radial-gradient(circle at center, #f0f9ff 0%, #e0f2fe 100%); color: #0f172a; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; }
+
+        /* SHOP STYLES */
+        #shop-overlay { z-index: 100; overflow-y: auto; justify-content: flex-start; padding-top: 100px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; width: 100%; max-width: 900px; padding: 0 20px; }
+        
+        @media (max-width: 480px) {
+            .shop-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .shop-card { padding: 8px; }
+            .shop-title { font-size: 0.65rem; height: 28px; }
+            .shop-desc { font-size: 0.55rem; height: 34px; }
+        }
+
+        .shop-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: all 0.2s; position: relative; }
+        body.light-theme .shop-card { background: rgba(15, 23, 42, 0.05); border-color: rgba(15, 23, 42, 0.1); }
+        .shop-card:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+        .shop-card.selected { border-color: #4ade80; background: rgba(74, 222, 128, 0.1); box-shadow: 0 0 15px rgba(74, 222, 128, 0.3); }
+        .shop-preview-canvas { width: 64px; height: 64px; border-radius: 8px; margin-bottom: 4px; border: 2px solid rgba(255,255,255,0.3); transition: filter 0.3s; }
+        .shop-title { font-size: 0.8rem; font-weight: 900; text-transform: uppercase; color: inherit; text-align: center; height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1.1; transition: filter 0.3s; }
+        .shop-desc { font-size: 0.6rem; color: #94a3b8; text-align: center; height: 40px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; transition: filter 0.3s; }
+        .shop-btn { width: 100%; padding: 6px 0; border-radius: 6px; font-weight: 900; font-size: 0.7rem; text-transform: uppercase; margin-top: auto; transition: all 0.2s; pointer-events: auto; }
+        .btn-buy { background: #fbbf24; color: #78350f; }
+        .btn-buy:hover { background: #fcd34d; }
+        .btn-equip { background: #334155; color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-equip:hover { background: #475569; }
+        .btn-equipped { background: #4ade80; color: #064e3b; }
+        
+        /* MYSTERY EFFECT */
+        .mystery-blur { filter: blur(8px); opacity: 0.5; pointer-events: none; user-select: none; }
+        .mystery-q { font-size: 1.5rem; font-weight: 900; color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+
+        .shop-wallet { position: sticky; top: -100px; background: var(--ui-bg); padding: 10px 20px; border-radius: 30px; border: 1px solid #fbbf24; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; z-index: 120; color: var(--ui-text); }
+        .loadout-counter { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 8px 20px; border-radius: 20px; border: 1px solid #4ade80; color: #4ade80; font-weight: 900; font-size: 0.9rem; z-index: 110; pointer-events: none; }
+        .loadout-counter.error { border-color: #ef4444; color: #ef4444; animation: shake 0.4s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(-50%); } 25% { transform: translateX(-55%); } 75% { transform: translateX(-45%); } }
+        
+        .close-shop { position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; cursor: pointer; z-index: 110; pointer-events: auto; transition: transform 0.2s; border: none; }
+        .close-shop:hover { transform: scale(1.1); }
+
+        /* THEME TOGGLE BUTTON */
+        #theme-toggle-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            pointer-events: auto;
+            transition: all 0.3s;
+        }
+
+        @media (max-width: 480px) {
+            #theme-toggle-btn { bottom: 140px; right: 20px; width: 44px; height: 44px; }
+        }
+
+        body.light-theme #theme-toggle-btn {
+            background: #0f172a;
+            border-color: #334155;
+            color: #fbbf24;
+        }
+        #theme-toggle-btn:hover { transform: scale(1.1) rotate(15deg); }
+
+        /* BRANDING TEXT STYLES */
+        #pillar-branding {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%) translateZ(0);
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            transform-style: preserve-3d;
+        }
+        .neopillar-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(1.2rem, 4vw, 3rem);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #ffffff;
+            position: relative;
+            text-shadow: 
+                0 4px 0 #2c3e50,
+                0 8px 0 #2c3e50,
+                0 12px 20px rgba(0,0,0,0.4);
+            white-space: nowrap;
+        }
+        .impact-bounce { animation: bounce 0.2s ease-out; }
+        @keyframes bounce {
+            0% { transform: scaleY(1); }
+            50% { transform: scaleY(0.8); }
+            100% { transform: scaleY(1); }
+        }
+    </style>
+</head>
+<body class="env-earth-day">
+
+    <div id="app-container" class="env-earth-day">
+        <div id="stars-container" class="absolute inset-0 pointer-events-none"></div>
+        <div id="clouds-container" class="absolute inset-0 pointer-events-none transition-opacity duration-1000"></div>
+        <div id="asteroids-container" class="absolute inset-0 pointer-events-none"></div>
+
+        <div id="sun" class="celestial sun"></div>
+        <div id="moon" class="celestial moon"></div>
+        <div id="mars" class="celestial mars-planet"></div>
+        <div id="jupiter" class="celestial jupiter-planet"></div>
+        <div id="saturn-wrap" class="celestial saturn-container">
+            <div class="saturn-planet"></div>
+            <div class="saturn-rings"></div>
+        </div>
+        <div id="uranus" class="celestial uranus-planet"></div>
+        <div id="neptune" class="celestial neptune-planet"></div>
+        <div id="galaxy-wrap" class="celestial galaxy-container">
+            <div class="galaxy-spiral"></div>
+            <div class="galaxy-core"></div>
+        </div>
+
+        <!-- IN-GAME BRANDING -->
+        <div id="pillar-branding">
+            <h1 class="neopillar-text" id="neopillar-game">NEOPILLAR</h1>
+        </div>
+    </div>
+
+    <div id="game-ui">
+        <div id="score">0</div>
+        <div id="ghost-warning">
+            <span id="warning-text" class="text-xs uppercase font-black text-white tracking-widest">GHOST BLOCK INBOUND</span>
+        </div>
+        <div id="powerup-text" class="font-black uppercase tracking-widest mt-2 h-6 text-center text-sm md:text-base px-4 transition-opacity duration-500"></div>
+    </div>
+
+    <div id="vision-prompt">PRESS NOW!</div>
+
+    <div id="blocks-poster">
+        <!-- Generated Dynamically -->
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <h1 class="text-4xl md:text-6xl font-black mb-4 italic tracking-tighter">NEOPILLAR</h1>
+        <p class="text-lg md:text-xl mb-8 opacity-90">Pick Three. Reach Infinity.</p>
+        <div class="flex flex-col gap-4 w-full max-w-xs">
+            <button id="start-btn" class="bg-white text-blue-600 hover:scale-105 py-4 px-6 md:px-12 rounded-full text-lg md:text-xl font-black transition-all active:scale-95 pointer-events-auto shadow-2xl">LAUNCH MISSION</button>
+            <button id="shop-btn" class="bg-indigo-600 text-white hover:bg-indigo-500 hover:scale-105 py-3 px-6 md:px-12 rounded-full text-base md:text-lg font-black transition-all active:scale-95 pointer-events-auto shadow-xl border border-indigo-400">SHOP</button>
+        </div>
+        <p class="mt-6 text-xs md:text-sm opacity-50 font-bold uppercase tracking-widest">TAP SCREEN TO PLAY</p>
+
+        <!-- THEME TOGGLE BUTTON -->
+        <button id="theme-toggle-btn" title="Toggle Day/Night Theme">
+            <svg id="theme-icon" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+    </div>
+
+    <div id="shop-overlay" class="overlay" style="display: none;">
+        <div id="loadout-badge" class="loadout-counter">LOADOUT: <span id="loadout-count">0</span>/3</div>
+        <button class="close-shop" id="close-shop-btn">X</button>
+        
+        <div class="text-center mb-4 mt-8">
+            <h2 class="text-2xl md:text-4xl font-black italic mb-2 text-indigo-400">BLOCK MARKET</h2>
+            <p class="text-xs md:text-sm opacity-70 max-w-md mx-auto mb-6 px-4">Select exactly 3 Special Blocks to use in your mission. They appear every 5th level.</p>
+        </div>
+
+        <div class="shop-wallet">
+            <svg class="coin-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fbbf24" stroke="#d97706" stroke-width="2"/><text x="12" y="17" text-anchor="middle" fill="#d97706" font-size="14" font-weight="900" style="font-family: serif;">$</text></svg>
+            <span id="shop-coin-count" class="font-black text-yellow-400 text-xl">0</span>
+        </div>
+
+        <div class="shop-grid" id="shop-container">
+            <!-- Shop Items Injected Here -->
+        </div>
+    </div>
+
+    <div id="msg" class="overlay" style="display: none;">
+        <div class="bg-slate-900/95 p-6 md:p-8 rounded-3xl border border-white/20 shadow-2xl max-w-sm w-full mx-4">
+            <h1 class="text-2xl md:text-3xl font-black mb-6 text-red-400 italic">MISSION FAILED</h1>
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-white/5 p-4 rounded-xl text-left"><p class="text-xs opacity-50 font-bold">ALTITUDE</p><p id="final-score" class="text-2xl font-black">0</p></div>
+                <div class="bg-white/5 p-4 rounded-xl text-left"><p class="text-xs opacity-50 font-bold">BEST</p><p id="best-score" class="text-2xl font-black text-cyan-400">0</p></div>
+                <div class="bg-yellow-500/10 p-4 rounded-xl col-span-2 flex justify-between items-center">
+                    <p class="text-xs font-bold text-yellow-500">TOTAL</p>
+                    <div class="flex items-center gap-2">
+                        <svg class="coin-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fbbf24" stroke="#d97706" stroke-width="2"/><text x="12" y="17" text-anchor="middle" fill="#d97706" font-size="14" font-weight="900" style="font-family: serif;">$</text></svg>
+                        <p id="final-coins" class="text-2xl font-black text-yellow-400">0</p>
+                    </div>
+                </div>
+            </div>
+            <button id="restart-btn" class="w-full bg-cyan-500 text-white font-black py-4 rounded-full text-lg md:text-xl pointer-events-auto uppercase shadow-xl hover:bg-cyan-400 transition-colors mb-4">RETRY</button>
+            <div class="flex gap-4">
+                <button id="shop-btn-fail" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-full text-xs md:text-sm pointer-events-auto uppercase transition-colors hover:bg-indigo-500">SHOP</button>
+                <button id="menu-btn" class="w-1/2 bg-transparent border-2 border-white/20 text-white/70 hover:text-white font-bold py-3 rounded-full text-xs md:text-sm pointer-events-auto uppercase transition-colors">MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="replica-panel">
+        <div id="coin-pill" class="info-pill" style="border-color: #fbbf24; color: #fbbf24;">
+            <span class="info-label">COINS</span>
+            <div class="info-value-container">
+                <svg class="coin-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fbbf24" stroke="#d97706" stroke-width="2"/><text x="12" y="17" text-anchor="middle" fill="#d97706" font-size="14" font-weight="900" style="font-family: serif;">$</text></svg>
+                <span id="total-coins-ui" class="info-value">0</span>
+            </div>
+        </div>
+        <div id="best-pill" class="info-pill" style="border-color: #22d3ee; color: #22d3ee;">
+            <span class="info-label">RECORD</span>
+            <span id="persistent-best-ui" class="info-value">0</span>
+        </div>
+    </div>
+
+<script>
+let scene, camera, renderer;
+let blocks = [], debris = [];
+let gameState = 'START';
+let score = 0, combo = 0;
+
+const DEFAULT_INVENTORY = ['GLUE', 'EXPAND', 'SLOW'];
+const DEFAULT_LOADOUT = ['GLUE', 'EXPAND', 'SLOW'];
+
+let playerData = {
+    coins: parseInt(localStorage.getItem('skyline_coins')) || 99990,
+    best: parseInt(localStorage.getItem('skyline_best')) || 0,
+    inventory: JSON.parse(localStorage.getItem('skyline_inventory')) || DEFAULT_INVENTORY,
+    loadout: JSON.parse(localStorage.getItem('skyline_loadout')) || DEFAULT_LOADOUT,
+    theme: localStorage.getItem('skyline_theme') || 'night'
+};
+
+const BLOCK_DEFS = {
+    'GLUE': { name: 'Glue', price: 100, desc: 'Prevents slicing for one turn.', tex: 'zebra', bg: '#4ade80' },
+    'SLOW': { name: 'Slow-Mo', price: 150, desc: 'Reduces speed for 3 turns.', tex: 'check', bg: '#60a5fa' },
+    'EXPAND': { name: 'Expand', price: 200, desc: 'Instantly increases tower width.', tex: 'polka', bg: '#ec4899' }, 
+    'MAGNET': { name: 'Magnet', price: 300, desc: 'Attracts next block to center.', tex: 'bands', bg: '#1d4ed8' },
+    'DOUBLE': { name: 'Double', price: 250, desc: 'Adds +2 to score.', tex: 'pinstripe', bg: '#fb923c' },
+    'GHOST': { name: 'Ghost', price: 350, desc: 'Semi-transparent block.', tex: 'camo', bg: '#334155' },
+    'SHIELD': { name: 'Shield', price: 400, desc: 'Protects against one miss.', tex: 'diamond', bg: '#059669' },
+    'TELEPORT': { name: 'Teleport', price: 300, desc: 'Stops instantly when tapped.', tex: 'zigzag', bg: '#d946ef' },
+    'GRAVITY': { name: 'Gravity', price: 450, desc: 'High risk, 5x score reward.', tex: 'vstripe', bg: '#dc2626' },
+    'SPRING': { name: 'Spring', price: 350, desc: 'Fast blocks, double points.', tex: 'wood', bg: '#84cc16' },
+    'FREEZE': { name: 'Freeze', price: 300, desc: 'Briefly pauses at perfect center.', tex: 'ice', bg: '#06b6d4' },
+    'MULTI': { name: 'Multi-Score', price: 500, desc: '3x points for 10 seconds.', tex: 'cane', bg: '#eab308' },
+    'VISION': { name: 'Vision', price: 250, desc: 'Shows center alignment guide.', tex: 'lines', bg: '#16a34a' },
+    'FLOAT': { name: 'Weightless', price: 200, desc: 'Sliced pieces float away.', tex: 'cloud', bg: '#a855f7' },
+    'LOCK': { name: 'Combo Lock', price: 400, desc: 'Streak survives minor misses.', tex: 'checkdiag', bg: '#1e40af' },
+    'SHRINK': { name: 'Shrink-Ray', price: 600, desc: 'Tiny block, instant +20 altitude.', tex: 'pixel', bg: '#f43f5e' }
+};
+
+const BASE_Y = -3.5; 
+const CAMERA_STATIC_THRESHOLD = 4;
+
+// Mobile Responsive Scaling Logic
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// MOBILE COMPATIBILITY ADJUSTMENTS
+const STARTING_SPEED = isMobile ? 0.08 : 0.13; // Slower start on mobile
+const SPEED_INCREMENT = isMobile ? 0.0012 : 0.0018; // Slower ramp up on mobile
+const BOUNCE_RANGE = isMobile ? 3.5 : 7.0; // Keep block closer to center on mobile screen
+
+let baseSpeed = STARTING_SPEED, hue = 280; 
+let currentBlock = null, direction = 1, axis = 'x';
+
+let slowMoCounter = 0, glueActive = false, springActive = 0, multiActive = false, multiTimer = null;
+let visionActive = false, shieldActive = false, comboLockActive = false, isWeightless = false;
+let powerupTextTimer = null;
+
+let freezePaused = false;
+let freezePauseTime = 0;
+const FREEZE_PAUSE_DURATION = 300; 
+
+const AudioEngine = {
+    ctx: null, 
+    masterGain: null,
+    init() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
+    },
+    play(type) {
+        if (!this.ctx) this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.masterGain);
+        
+        switch(type) {
+            case 'perfect':
+                // Relaxing harmonic progression
+                osc.type = 'sine'; 
+                // Pitch rises harmonically based on combo
+                const baseFreq = 329.63; // E4
+                const harmonicMultiplier = 1 + (combo * 0.05);
+                osc.frequency.setValueAtTime(baseFreq * harmonicMultiplier, now);
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+                osc.start(now); 
+                osc.stop(now + 1.2);
+                if (navigator.vibrate) navigator.vibrate(20);
+                break;
+                
+            case 'place':
+                // Clean heavy drop sound
+                this.heavyImpact(now, 1.0);
+                if (navigator.vibrate) navigator.vibrate(35);
+                break;
+                
+            case 'slice':
+                // Heavy broken block sound with shattering effect
+                this.heavyShatter(now);
+                if (navigator.vibrate) navigator.vibrate([40, 20, 30]);
+                break;
+                
+            case 'fail':
+                // Massive collapse sound
+                this.heavyImpact(now, 1.8);
+                this.heavyShatter(now + 0.1);
+                const sub = this.ctx.createOscillator();
+                sub.type = 'sine';
+                sub.frequency.setValueAtTime(80, now);
+                sub.frequency.exponentialRampToValueAtTime(30, now + 0.8);
+                const subG = this.ctx.createGain();
+                subG.gain.setValueAtTime(0.5, now);
+                subG.gain.linearRampToValueAtTime(0, now + 0.8);
+                sub.connect(subG); subG.connect(this.masterGain);
+                sub.start(now); sub.stop(now + 0.8);
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                break;
+                
+            case 'powerup':
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.4);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+                break;
+                
+            case 'buy':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(660, now);
+                osc.frequency.setValueAtTime(990, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+                break;
+        }
+    },
+    heavyImpact(time, intensity) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(40, time + 0.2);
+        gain.gain.setValueAtTime(0.6 * intensity, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+        osc.connect(gain); gain.connect(this.masterGain);
+        osc.start(time); osc.stop(time + 0.3);
+    },
+    heavyShatter(time) {
+        // Procedural noise for "heavy broken piece" crunch
+        const bufferSize = this.ctx.sampleRate * 0.5;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const source = this.ctx.createBufferSource();
+        source.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(600, time);
+        filter.frequency.exponentialRampToValueAtTime(100, time + 0.4);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.4, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+        source.connect(filter); filter.connect(gain); gain.connect(this.masterGain);
+        source.start(time);
+    }
+};
+
+const textures = {}; 
+const BLOCK_HEIGHT = 0.4;
+const INITIAL_SIZE = 3;
+
+const bgElements = {
+    container: document.getElementById('app-container'),
+    sun: document.getElementById('sun'), moon: document.getElementById('moon'),
+    mars: document.getElementById('mars'), jupiter: document.getElementById('jupiter'),
+    saturn: document.getElementById('saturn-wrap'), uranus: document.getElementById('uranus'),
+    neptune: document.getElementById('neptune'), galaxy: document.getElementById('galaxy-wrap'),
+    clouds: document.getElementById('clouds-container'), stars: document.getElementById('stars-container'),
+    asteroids: document.getElementById('asteroids-container'),
+    branding: document.getElementById('pillar-branding')
+};
+
+function createProceduralTexture(key) {
+    const def = BLOCK_DEFS[key];
+    const type = def.tex;
+    const baseColor = def.bg;
+    
+    const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+    const ctx = c.getContext('2d');
+    
+    const fill = (col) => { ctx.fillStyle = col; ctx.fillRect(0,0,128,128); }
+    
+    if (type === 'zebra') { fill(baseColor); ctx.fillStyle='rgba(255,255,255,0.4)'; for(let i=0;i<128;i+=20) ctx.fillRect(i,0,10,128); }
+    else if (type === 'check') { fill(baseColor); ctx.fillStyle='#ffffff'; for(let i=0;i<128;i+=32) for(let j=(i/32)%2?0:16;j<128;j+=32) ctx.fillRect(i,j,16,16); }
+    else if (type === 'polka') { fill(baseColor); ctx.fillStyle='#ffffff'; for(let i=16;i<128;i+=32) for(let j=16;j<128;j+=32) {ctx.beginPath();ctx.arc(i,j,6,0,7);ctx.fill();} }
+    else if (type === 'bands') { fill(baseColor); ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.3; ctx.fillRect(0,20,128,30); ctx.fillRect(0,80,128,30); ctx.globalAlpha=1; }
+    else if (type === 'pinstripe') { fill(baseColor); ctx.fillStyle='#ffffff'; for(let i=0;i<128;i+=8) ctx.fillRect(i,0,2,128); }
+    else if (type === 'camo') { fill(baseColor); ctx.fillStyle='rgba(0,0,0,0.3)'; for(let i=15;i<15;i++) {ctx.beginPath();ctx.arc(Math.random()*128,Math.random()*128,20,0,7);ctx.fill();} }
+    else if (type === 'diamond') { fill(baseColor); ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.beginPath(); for(let i=-64;i<192;i+=32) {ctx.moveTo(i,0);ctx.lineTo(i+32,128);ctx.lineTo(i+16,128);ctx.lineTo(i-16,0);} ctx.fill(); }
+    else if (type === 'zigzag') { fill(baseColor); ctx.strokeStyle='#ffffff'; ctx.lineWidth=6; ctx.beginPath(); for(let y=10;y<128;y+=30) {ctx.moveTo(0,y); for(let x=0;x<=128;x+=16) ctx.lineTo(x,y+(x%32?10:-10));} ctx.stroke(); }
+    else if (type === 'vstripe') { fill(baseColor); ctx.fillStyle='#000'; for(let i=0;i<128;i+=32) ctx.fillRect(i,0,16,128); }
+    else if (type === 'wood') { fill(baseColor); ctx.fillStyle='rgba(0,0,0,0.2)'; for(let i=0;i<128;i+=16) ctx.fillRect(0,i,128,4); }
+    else if (type === 'ice') { fill(baseColor); ctx.strokeStyle='#fff'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(20,20); ctx.lineTo(80,60); ctx.lineTo(40,100); ctx.stroke(); }
+    else if (type === 'cane') { fill(baseColor); ctx.fillStyle='#ffffff'; for(let i=0;i<128;i+=32) ctx.fillRect(0,i,128,16); }
+    else if (type === 'lines') { fill(baseColor); ctx.fillStyle='#ffffff'; for(let i=128;i<128;i+=16) ctx.fillRect(i,0,4,128); }
+    else if (type === 'cloud') { fill(baseColor); ctx.fillStyle='#fff'; ctx.filter='blur(8px)'; ctx.beginPath(); ctx.arc(64,64,40,0,7); ctx.fill(); ctx.filter='none'; }
+    else if (type === 'checkdiag') { fill(baseColor); ctx.fillStyle='rgba(255,255,255,0.2)'; for(let i=0;i<128;i+=32) ctx.fillRect(i,0,16,128); }
+    else if (type === 'pixel') { fill(baseColor); ctx.fillStyle='rgba(255,255,255,0.3)'; for(let i=0;i<128;i+=16) for(let j=0;j<128;j+=16) if(Math.random()>0.5) ctx.fillRect(i,j,16,16); }
+    
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+}
+
+function init() {
+    for(let k in BLOCK_DEFS) textures[k] = createProceduralTexture(k);
+
+    scene = new THREE.Scene();
+    const aspect = window.innerWidth / window.innerHeight;
+    const d = 5;
+    camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 0.1, 1000);
+    camera.position.set(10, BASE_Y + 10, 10);
+    camera.lookAt(0, BASE_Y, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
+
+    initBackgroundVisuals();
+    applyTheme();
+    updateUI();
+    renderPoster();
+    
+    window.addEventListener('resize', onWindowResize);
+    
+    // Improved Mobile Input handling to avoid delay and double-triggering
+    window.addEventListener('mousedown', onInputStart);
+    window.addEventListener('touchstart', (e) => { 
+        // Stop default zoom/scroll but allow clicks on buttons
+        if (!e.target.closest('button') && !e.target.closest('.shop-card')) {
+            e.preventDefault();
+        }
+        onInputStart(e); 
+    }, { passive: false });
+
+    window.addEventListener('keydown', (e) => { 
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (gameState === 'START' || gameState === 'GAMEOVER') resetGame();
+            else if (gameState === 'PLAYING') handleAction();
+        }
+    });
+
+    document.getElementById('start-btn').onclick = resetGame;
+    document.getElementById('restart-btn').onclick = resetGame;
+    document.getElementById('shop-btn').onclick = openShop;
+    document.getElementById('shop-btn-fail').onclick = openShop;
+    document.getElementById('theme-toggle-btn').onclick = toggleTheme;
+    document.getElementById('close-shop-btn').onclick = validateAndCloseShop;
+    document.getElementById('menu-btn').onclick = () => {
+        document.getElementById('msg').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'flex';
+        gameState = 'START';
+        document.getElementById('replica-panel').style.opacity = '0';
+        document.getElementById('blocks-poster').style.opacity = '0';
+        bgElements.branding.style.display = 'none';
+    };
+
+    animate();
+}
+
+function toggleTheme() {
+    playerData.theme = playerData.theme === 'night' ? 'day' : 'night';
+    localStorage.setItem('skyline_theme', playerData.theme);
+    applyTheme();
+    AudioEngine.play('buy');
+}
+
+function applyTheme() {
+    const icon = document.getElementById('theme-icon');
+    if (playerData.theme === 'day') {
+        document.body.classList.add('light-theme');
+        icon.innerHTML = '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>';
+    } else {
+        document.body.classList.remove('light-theme');
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    }
+}
+
+function onInputStart(e) {
+    if (e.target.closest('button') || e.target.closest('.shop-card') || e.target.closest('.close-shop')) return;
+    
+    if (gameState === 'START' || gameState === 'GAMEOVER') {
+        const overlays = ['msg', 'start-screen', 'shop-overlay'];
+        const anyVisible = overlays.some(id => document.getElementById(id).style.display !== 'none');
+        if (gameState === 'GAMEOVER') resetGame();
+    } else if (gameState === 'PLAYING') {
+        handleAction();
+    }
+}
+
+function saveDate() {
+    localStorage.setItem('skyline_coins', playerData.coins);
+    localStorage.setItem('skyline_best', playerData.best);
+    localStorage.setItem('skyline_inventory', JSON.stringify(playerData.inventory));
+    localStorage.setItem('skyline_loadout', JSON.stringify(playerData.loadout));
+    updateUI();
+}
+
+function updateUI() {
+    document.getElementById('total-coins-ui').innerText = playerData.coins;
+    document.getElementById('final-coins').innerText = playerData.coins;
+    document.getElementById('persistent-best-ui').innerText = playerData.best;
+    document.getElementById('best-score').innerText = playerData.best;
+    document.getElementById('shop-coin-count').innerText = playerData.coins;
+}
+
+function openShop() {
+    gameState = 'SHOP';
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('msg').style.display = 'none';
+    document.getElementById('shop-overlay').style.display = 'flex';
+    document.getElementById('replica-panel').style.opacity = '0';
+    document.getElementById('blocks-poster').style.opacity = '0';
+    bgElements.branding.style.display = 'none';
+    renderShop();
+    updateUI();
+}
+
+function validateAndCloseShop() {
+    if (playerData.loadout.length !== 3) {
+        const badge = document.getElementById('loadout-badge');
+        badge.classList.add('error');
+        setTimeout(() => badge.classList.remove('error'), 400);
+        showPowerText("SELECT EXACTLY 3 BLOCKS!");
+        return;
+    }
+    closeShop();
+}
+
+function closeShop() {
+    gameState = 'START';
+    document.getElementById('shop-overlay').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'flex';
+    document.getElementById('replica-panel').style.opacity = '0';
+    document.getElementById('blocks-poster').style.opacity = '0';
+    renderPoster();
+    saveDate();
+}
+
+function renderPoster() {
+    const poster = document.getElementById('blocks-poster');
+    poster.innerHTML = '';
+    playerData.loadout.forEach(key => {
+        const def = BLOCK_DEFS[key];
+        const div = document.createElement('div');
+        div.className = 'poster-item';
+        const texCanvas = textures[key].image;
+        const dataUrl = texCanvas.toDataURL();
+        div.innerHTML = `
+            <div class="poster-cube" style="background-image: url('${dataUrl}'); background-color: ${def.bg}; border-color: rgba(255,255,255,0.4);"></div>
+            <span class="poster-label" style="color: ${def.bg}; filter: brightness(1.5); text-shadow: 0 0 5px rgba(0,0,0,0.5);">${def.name}</span>
+        `;
+        poster.appendChild(div);
+    });
+}
+
+function renderShop() {
+    const container = document.getElementById('shop-container');
+    container.innerHTML = '';
+    const countSpan = document.getElementById('loadout-count');
+    countSpan.innerText = playerData.loadout.length;
+    
+    if (playerData.loadout.length !== 3) {
+        countSpan.style.color = '#ef4444';
+    } else {
+        countSpan.style.color = '#4ade80';
+    }
+
+    Object.keys(BLOCK_DEFS).forEach(key => {
+        const def = BLOCK_DEFS[key];
+        const isOwned = playerData.inventory.includes(key);
+        const isEquipped = playerData.loadout.includes(key);
+        const isMystery = !isOwned && !DEFAULT_INVENTORY.includes(key);
+        
+        const card = document.createElement('div');
+        card.className = `shop-card ${isEquipped ? 'selected' : ''}`;
+        
+        let actionBtn = '';
+        if (!isOwned) {
+            actionBtn = `<button class="shop-btn btn-buy" onclick="buyBlock('${key}')">$${def.price}</button>`;
+        } else {
+            if (isEquipped) {
+                actionBtn = `<button class="shop-btn btn-equipped" onclick="toggleEquip('${key}')">EQUIPPED</button>`;
+            } else {
+                const canEquip = playerData.loadout.length < 3;
+                actionBtn = `<button class="shop-btn btn-equip" style="${!canEquip ? 'opacity: 0.5; cursor: not-allowed;' : ''}" onclick="toggleEquip('${key}')">EQUIP</button>`;
+            }
+        }
+
+        const dataUrl = textures[key].image.toDataURL();
+
+        card.innerHTML = `
+            <div class="shop-title ${isMystery ? 'mystery-blur' : ''}">${isMystery ? '???' : def.name}</div>
+            <div class="shop-desc ${isMystery ? 'mystery-blur' : ''}">${isMystery ? 'Unlock this block to see its cosmic power.' : def.desc}</div>
+            <div class="shop-preview-canvas flex items-center justify-center overflow-hidden" style="background-color: ${isMystery ? '#111' : def.bg}; border-color: ${isMystery ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.3)'};">
+                <div class="w-full h-full ${isMystery ? 'mystery-blur' : ''}" style="background-image: url('${dataUrl}'); background-size: cover;"></div>
+                ${isMystery ? '<div class="absolute mystery-q">?</div>' : ''}
+            </div>
+            ${actionBtn}
+        `;
+        container.appendChild(card);
+    });
+}
+
+window.buyBlock = function(key) {
+    const cost = BLOCK_DEFS[key].price;
+    if (playerData.coins >= cost) {
+        playerData.coins -= cost;
+        playerData.inventory.push(key);
+        AudioEngine.play('buy');
+        if (playerData.loadout.length < 3) playerData.loadout.push(key);
+        saveDate();
+        renderShop();
+        updateUI();
+    }
+}
+
+window.toggleEquip = function(key) {
+    if (playerData.loadout.includes(key)) {
+        playerData.loadout = playerData.loadout.filter(k => k !== key);
+    } else {
+        if (playerData.loadout.length < 3) {
+            playerData.loadout.push(key);
+        } else {
+            const badge = document.getElementById('loadout-badge');
+            badge.classList.add('error');
+            setTimeout(() => badge.classList.remove('error'), 400);
+            return;
+        }
+    }
+    saveDate();
+    renderShop();
+}
+
+function resetGame() {
+    if (playerData.loadout.length !== 3) {
+        openShop();
+        showPowerText("SELECT EXACTLY 3 BLOCKS TO START!");
+        return;
+    }
+
+    AudioEngine.init();
+    blocks.forEach(b => cleanupMesh(b.mesh));
+    debris.forEach(d => cleanupMesh(d.mesh));
+    if (currentBlock) cleanupMesh(currentBlock.mesh);
+    blocks = []; debris = []; currentBlock = null;
+    score = 0; combo = 0; baseSpeed = STARTING_SPEED;
+    axis = 'x'; direction = 1; hue = 280; 
+    
+    slowMoCounter = 0; glueActive = false; springActive = 0;
+    multiActive = false; if(multiTimer) clearTimeout(multiTimer);
+    visionActive = false; shieldActive = false; comboLockActive = false;
+    isWeightless = false;
+
+    freezePaused = false;
+    freezePauseTime = 0;
+
+    document.getElementById('score').innerText = '0';
+    document.getElementById('msg').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('powerup-text').innerText = '';
+    document.getElementById('ghost-warning').classList.remove('active');
+    document.getElementById('vision-prompt').style.opacity = '0';
+    
+    document.getElementById('replica-panel').style.opacity = '1';
+    document.getElementById('blocks-poster').style.opacity = '1';
+
+    // Show branding and position it initially
+    bgElements.branding.style.display = 'flex';
+    bgElements.branding.style.top = '70%'; 
+
+    updateBackgroundByScore();
+    addBlock(0, 0, INITIAL_SIZE, INITIAL_SIZE, false); 
+    spawnBlock();
+    gameState = 'PLAYING';
+}
+
+function addBlock(x, z, width, depth, moving, type = 'NORMAL') {
+    const y = BASE_Y + (blocks.length * BLOCK_HEIGHT);
+    const geometry = new THREE.BoxGeometry(width, BLOCK_HEIGHT, depth);
+    let material;
+    
+    if (type === 'NORMAL') {
+        material = new THREE.MeshPhongMaterial({ color: new THREE.Color(`hsl(${hue}, 70%, 60%)`), transparent: true, opacity: 1 });
+    } else {
+        const def = BLOCK_DEFS[type];
+        material = new THREE.MeshPhongMaterial({ 
+            map: textures[type],
+            emissive: new THREE.Color(def.bg),
+            emissiveIntensity: 0.5,
+            transparent: true, opacity: 1
+        });
+    }
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
+    
+    const block = { mesh, width, depth, x, z, y, moving, type };
+    if (moving) currentBlock = block; else blocks.push(block);
+    return block;
+}
+
+function spawnBlock() {
+    const prev = blocks[blocks.length - 1];
+    hue = (hue + 10) % 360;
+    if (score < 12 && hue >= 180 && hue <= 250) hue = 260; 
+    axis = axis === 'x' ? 'z' : 'x';
+    
+    let type = 'NORMAL';
+    if ((score + 1) % 5 === 0 && playerData.loadout.length === 3) {
+        const index = Math.floor((score + 1) / 5) % 3;
+        type = playerData.loadout[index];
+    }
+    
+    const warning = document.getElementById('ghost-warning');
+    const warningText = document.getElementById('warning-text');
+    
+    if (type === 'GHOST') {
+        warningText.innerText = "GHOST BLOCK INBOUND";
+        warning.classList.add('active');
+    } else if (type === 'FREEZE') {
+        warningText.innerText = "ICE STORM INBOUND";
+        warning.classList.add('active');
+    } else {
+        warning.classList.remove('active');
+    }
+
+    if (type === 'VISION') visionActive = true;
+    
+    let w = prev.width; let d = prev.depth;
+    if (type === 'SHRINK') {
+        w *= 0.5; d *= 0.5;
+        score += 20; 
+        document.getElementById('score').innerText = score;
+        showPowerText("SHRINK RAY! +20 PTS");
+    }
+
+    addBlock(axis === 'x' ? -BOUNCE_RANGE : prev.x, axis === 'z' ? -BOUNCE_RANGE : prev.z, w, d, true, type);
+    
+    freezePaused = false;
+    freezePauseTime = 0;
+
+    let targetCameraY = BASE_Y + 10;
+    if (blocks.length > CAMERA_STATIC_THRESHOLD) targetCameraY = BASE_Y + (blocks.length * BLOCK_HEIGHT) + 10;
+    new TWEEN_Simple(camera.position, { x: 10, y: targetCameraY, z: 10 }, 500);
+}
+
+function showPowerText(text) {
+    const el = document.getElementById('powerup-text');
+    el.innerText = text;
+    el.style.opacity = "1";
+    if (powerupTextTimer) clearTimeout(powerupTextTimer);
+    powerupTextTimer = setTimeout(() => { 
+        el.style.opacity = "0";
+        setTimeout(() => { if(el.style.opacity === "0") el.innerText = ""; }, 500);
+    }, 2000);
+}
+
+function handleInput() {
+    if (!currentBlock) return;
+    const top = currentBlock, bottom = blocks[blocks.length - 1];
+    
+    if (bottom.type === 'MAGNET' || top.type === 'FREEZE') {
+        top.mesh.position[axis] = bottom[axis];
+    }
+
+    const delta = axis === 'x' ? top.mesh.position.x - bottom.x : top.mesh.position.z - bottom.z;
+    let absDelta = Math.abs(delta);
+    const size = axis === 'x' ? top.width : top.depth;
+
+    if (top.type !== 'NORMAL') {
+        AudioEngine.play('powerup');
+        const def = BLOCK_DEFS[top.type];
+        if(def) showPowerText(`${def.name} ACTIVATED!`);
+        
+        if (top.type === 'GLUE') glueActive = true;
+        if (top.type === 'SLOW') slowMoCounter = 3; 
+        if (top.type === 'EXPAND') { 
+            const expansion = INITIAL_SIZE * 0.15;
+            top.width += expansion; top.depth += expansion;
+            updateMeshSize(top.mesh, top.width, top.depth);
+        }
+        if (top.type === 'DOUBLE') score += 2;
+        if (top.type === 'SHIELD') shieldActive = true;
+        if (top.type === 'GRAVITY' && absDelta < 0.1) score = Math.floor(score + (score * 5)); 
+        if (top.type === 'SPRING') springActive = 3;
+        if (top.type === 'MULTI') {
+            multiActive = true;
+            if (multiTimer) clearTimeout(multiTimer);
+            multiTimer = setTimeout(() => { multiActive = false; showPowerText("MULTIPLIER ENDED"); }, 10000);
+        }
+        if (top.type === 'FLOAT') isWeightless = true;
+        if (top.type === 'LOCK') comboLockActive = true;
+    }
+
+    visionActive = false;
+    document.getElementById('vision-prompt').style.opacity = '0';
+    document.getElementById('vision-prompt').classList.remove('flash');
+
+    let isPerfect = absDelta < 0.15 || glueActive || bottom.type === 'MAGNET' || top.type === 'FREEZE';
+    
+    if (glueActive) glueActive = false;
+    if (slowMoCounter > 0) slowMoCounter--;
+    if (springActive > 0) springActive--;
+
+    if (isPerfect) {
+        AudioEngine.play('perfect');
+        top.mesh.position[axis] = bottom[axis];
+        combo++;
+        let points = 1;
+        if (springActive > 0) points *= 2;
+        if (multiActive) points *= 3;
+        if (top.type === 'GRAVITY') points *= 5; 
+        playerData.coins += (combo * points);
+    } else {
+        // Trigger slice sound with heavy shatter effect
+        AudioEngine.play('slice');
+        
+        if (!comboLockActive) combo = 0; 
+        const overlap = size - absDelta;
+        if (overlap <= 0) {
+            if (shieldActive) {
+                shieldActive = false;
+                showPowerText("SHIELD BROKE!");
+                top[axis === 'x' ? 'width' : 'depth'] = 0.5;
+                updateMeshSize(top.mesh, top.width, top.depth);
+                top.mesh.position[axis] = bottom[axis] + (delta > 0 ? (size/2) : -(size/2));
+            } else {
+                gameOver(); return; 
+            }
+        } else {
+            const debrisSize = absDelta;
+            const debrisPos = delta > 0 ? bottom[axis] + size/2 + debrisSize/2 : bottom[axis] - size/2 - debrisSize/2;
+            addDebris(axis === 'x' ? debrisPos : top.mesh.position.x, axis === 'z' ? debrisPos : top.mesh.position.z, axis === 'x' ? debrisSize : top.width, axis === 'z' ? debrisSize : top.depth, top.mesh.material.color, top.mesh.material.map);
+            top[axis === 'x' ? 'width' : 'depth'] = overlap;
+            updateMeshSize(top.mesh, top.width, top.depth);
+            top.mesh.position[axis] -= delta / 2;
+        }
+    }
+
+    top.x = top.mesh.position.x; top.z = top.mesh.position.z; top.moving = false;
+    blocks.push(top); currentBlock = null;
+    score++; 
+    document.getElementById('score').innerText = score;
+    document.getElementById('total-coins-ui').innerText = playerData.coins;
+    updateBackgroundByScore();
+
+    const textEl = document.getElementById('neopillar-game');
+    textEl.classList.remove('impact-bounce');
+    void textEl.offsetWidth; 
+    textEl.classList.add('impact-bounce');
+
+    baseSpeed += SPEED_INCREMENT;
+    spawnBlock();
+}
+
+function gameOver() {
+    AudioEngine.play('fail');
+    gameState = 'GAMEOVER';
+    if (score > playerData.best) playerData.best = score;
+    saveDate();
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('final-coins').innerText = playerData.coins;
+    document.getElementById('msg').style.display = 'flex';
+    document.getElementById('vision-prompt').style.opacity = '0';
+    visionActive = false;
+    bgElements.branding.style.display = 'none';
+}
+
+function handleAction() { 
+    if (gameState === 'PLAYING') {
+        if (currentBlock && currentBlock.type === 'TELEPORT') {
+             currentBlock.mesh.position[axis] = currentBlock.mesh.position[axis];
+        }
+        handleInput(); 
+    }
+}
+
+function addDebris(x, z, w, d, color, map) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, BLOCK_HEIGHT, d), new THREE.MeshPhongMaterial({ color, map }));
+    mesh.position.set(x, BASE_Y + (blocks.length) * BLOCK_HEIGHT, z);
+    scene.add(mesh);
+    const vy = isWeightless ? 0.05 : 0;
+    debris.push({ mesh, vy: vy, rot: (Math.random()-0.5)*0.1 });
+}
+
+function updateMeshSize(mesh, w, d) {
+    mesh.geometry.dispose();
+    mesh.geometry = new THREE.BoxGeometry(w, BLOCK_HEIGHT, d);
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    const towerY = BASE_Y + (blocks.length * BLOCK_HEIGHT);
+
+    if (gameState === 'PLAYING') {
+        const baseYPosition = 70; 
+        const movementFactor = 25; 
+        bgElements.branding.style.top = `calc(${baseYPosition}% + ${score * movementFactor}px)`;
+
+        if (currentBlock) {
+            let speed = baseSpeed;
+            if (slowMoCounter > 0) speed *= 0.5;
+            if (springActive > 0) speed *= 1.5;
+            if (currentBlock.type === 'GRAVITY') speed *= 1.5;
+            
+            const bottom = blocks[blocks.length - 1];
+            const currentPos = currentBlock.mesh.position[axis];
+            const targetPos = bottom[axis];
+            
+            if (currentBlock.type === 'FREEZE' && !freezePaused) {
+                const diff = currentPos - targetPos;
+                const nextDiff = (currentPos + (speed * direction)) - targetPos;
+                if (Math.sign(diff) !== Math.sign(nextDiff)) {
+                    freezePaused = true;
+                    freezePauseTime = Date.now();
+                    currentBlock.mesh.position[axis] = targetPos; 
+                }
+            }
+
+            if (freezePaused) {
+                if (Date.now() - freezePauseTime > FREEZE_PAUSE_DURATION) {
+                    freezePaused = false;
+                    currentBlock.mesh.position[axis] += (speed * direction);
+                }
+            } else {
+                currentBlock.mesh.position[axis] += (speed * direction);
+                if (Math.abs(currentBlock.mesh.position[axis]) > BOUNCE_RANGE) direction *= -1;
+            }
+            
+            if (currentBlock.type === 'GHOST') {
+                const flicker = Math.sin(Date.now() / 100);
+                currentBlock.mesh.material.opacity = flicker > 0 ? 0.8 : 0.05;
+            } else { currentBlock.mesh.material.opacity = 1; }
+
+            if (visionActive) {
+                const currentPosVis = currentBlock.mesh.position[axis];
+                const targetPosVis = bottom[axis];
+                const diffVis = Math.abs(currentPosVis - targetPosVis);
+                const prompt = document.getElementById('vision-prompt');
+                if (diffVis < 0.25) {
+                    prompt.style.opacity = '1';
+                    prompt.classList.add('flash');
+                } else {
+                    prompt.style.opacity = '0.2';
+                    prompt.classList.remove('flash');
+                }
+            }
+        }
+    }
+    
+    debris.forEach((d, i) => {
+        if (isWeightless) {
+            d.mesh.position.y += d.vy; d.mesh.rotation.y += d.rot; d.mesh.material.opacity -= 0.01;
+            if(d.mesh.material.opacity <= 0) { cleanupMesh(d.mesh); debris.splice(i, 1); }
+        } else {
+            d.vy -= 0.02; d.mesh.position.y += d.vy; d.mesh.rotation.x += d.rot;
+            if(d.mesh.position.y < towerY - 10) { cleanupMesh(d.mesh); debris.splice(i, 1); }
+        }
+    });
+    camera.lookAt(0, towerY, 0);
+    renderer.render(scene, camera);
+}
+
+function initBackgroundVisuals() {
+    for(let i=0; i<8; i++) {
+        const group = document.createElement('div');
+        group.className = 'cloud-group';
+        const baseSize = Math.random() * 60 + 40;
+        for(let j=0; j<5; j++) {
+            const part = document.createElement('div');
+            part.className = 'cloud-part';
+            const s = baseSize * (0.8 + Math.random() * 0.5);
+            part.style.width = s + 'px'; part.style.height = s*0.8 + 'px';
+            part.style.left = (j*25) + 'px'; part.style.top = (Math.random()*20-10) + 'px';
+            group.appendChild(part);
+        }
+        group.style.top = Math.random()*70 + '%';
+        group.style.setProperty('--speed', (Math.random()*30+40) + 's');
+        group.style.animationDelay = (Math.random()*-60) + 's';
+        bgElements.clouds.appendChild(group);
+    }
+    for(let i=0; i<300; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const size = Math.random()*2.5;
+        s.style.width = size+'px'; s.style.height = size+'px';
+        s.style.top = Math.random()*100+'%'; s.style.left = Math.random()*100+'%';
+        bgElements.stars.appendChild(s);
+    }
+    for(let i=0; i<45; i++) {
+        const a = document.createElement('div');
+        a.className = 'asteroid';
+        const size = Math.random()*45+15;
+        a.style.width = size+'px'; a.style.height = size+'px';
+        a.style.top = Math.random()*100+'%'; a.style.left = Math.random()*100+'%';
+        a.style.setProperty('--moveX', (Math.random()-0.5)*400+'px');
+        a.style.setProperty('--moveY', (Math.random()-0.5)*400+'px');
+        a.style.setProperty('--duration', (Math.random()*12+15)+'s');
+        bgElements.asteroids.appendChild(a);
+    }
+}
+
+function updateBackgroundByScore() {
+    const el = bgElements;
+    [el.mars, el.jupiter, el.saturn, el.uranus, el.neptune, el.galaxy].forEach(i => {
+        i.style.opacity = '0'; i.style.transform = 'translate(-50%, -50%) scale(0)';
+    });
+    if (score < 12) {
+        el.container.className = 'env-earth-day';
+        el.sun.style.opacity = '1'; el.sun.style.top = '40px';
+        el.moon.style.opacity = '0'; el.moon.style.top = '150%';
+        el.clouds.style.opacity = '1';
+        el.stars.querySelectorAll('.star').forEach(s => s.style.opacity = '0');
+    } else if (score < 25) {
+        el.container.className = 'env-earth-sunset';
+        el.sun.style.top = '150px';
+        el.clouds.style.opacity = '0.6';
+    } else if (score < 40) {
+        el.container.className = 'env-earth-night';
+        el.sun.style.opacity = '0'; el.moon.style.opacity = '1'; el.moon.style.top = '40px';
+        el.stars.querySelectorAll('.star').forEach(s => s.style.opacity = Math.random()*0.8+0.2);
+    } else if (score < 60) {
+        el.container.className = 'env-mars'; el.moon.style.opacity = '0';
+        el.mars.style.opacity = '1'; el.mars.style.transform = 'translate(-50%, -50%) scale(1)';
+    } else if (score < 100) {
+        el.container.className = 'env-jupiter';
+        el.jupiter.style.opacity = '1'; el.jupiter.style.transform = 'translate(-50%, -50%) scale(1)';
+    } else {
+        el.container.className = 'env-galaxy';
+        el.galaxy.style.opacity = '1'; el.galaxy.style.transform = 'translate(-50%, -50%) scale(1)';
+    }
+}
+
+function onWindowResize() {
+    const aspect = window.innerWidth / window.innerHeight;
+    const d = 5;
+    camera.left = -d * aspect; camera.right = d * aspect;
+    camera.top = d; camera.bottom = -d;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function cleanupMesh(mesh) {
+    scene.remove(mesh);
+    if (mesh.geometry) mesh.geometry.dispose();
+    if (mesh.material) mesh.material.dispose();
+}
+
+class TWEEN_Simple {
+    constructor(obj, target, duration) {
+        const start = { ...obj }, startTime = performance.now();
+        const anim = (time) => {
+            const progress = Math.min((time - startTime) / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+            for (let k in target) obj[k] = start[k] + (target[k] - start[k]) * ease;
+            if (progress < 1) requestAnimationFrame(anim);
+        };
+        requestAnimationFrame(anim);
+    }
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
