@@ -957,7 +957,14 @@ function handleInput() {
     if (!currentBlock) return;
     const top = currentBlock, bottom = blocks[blocks.length - 1];
     
-    if (bottom.type === 'MAGNET' || top.type === 'FREEZE') {
+    // Check if block is at perfect alignment and if current block is Magnet OR if Freeze is currently in its paused state.
+    // If Freeze is moving (not paused), it acts like a normal block for slicing purposes.
+    let isPerfectForce = false;
+    if (bottom.type === 'MAGNET') {
+        isPerfectForce = true;
+        top.mesh.position[axis] = bottom[axis];
+    } else if (top.type === 'FREEZE' && freezePaused) {
+        isPerfectForce = true;
         top.mesh.position[axis] = bottom[axis];
     }
 
@@ -994,7 +1001,8 @@ function handleInput() {
     document.getElementById('vision-prompt').style.opacity = '0';
     document.getElementById('vision-prompt').classList.remove('flash');
 
-    let isPerfect = absDelta < 0.15 || glueActive || bottom.type === 'MAGNET' || top.type === 'FREEZE';
+    // Perfect logic: snap only if it's visually aligned or forced by state
+    let isPerfect = absDelta < 0.15 || glueActive || isPerfectForce;
     
     if (glueActive) glueActive = false;
     if (slowMoCounter > 0) slowMoCounter--;
@@ -1010,7 +1018,7 @@ function handleInput() {
         if (top.type === 'GRAVITY') points *= 5; 
         playerData.coins += (combo * points);
     } else {
-        // Trigger slice sound with heavy shatter effect
+        // Slice logic for non-perfect hits (including moving Freeze blocks)
         AudioEngine.play('slice');
         
         if (!comboLockActive) combo = 0; 
