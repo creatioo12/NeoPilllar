@@ -631,6 +631,7 @@ function init() {
     window.addEventListener('keydown', (e) => { 
 
          // CHEAT CODE: Press Backspace to increase score by 10
+        /*
         if (e.code === 'Backspace' && gameState === 'PLAYING') {
             e.preventDefault();
             score += 10;
@@ -641,6 +642,7 @@ function init() {
             AudioEngine.play('powerup');
             showPowerText("+10 ALTITUDE BOOST!");
         }
+        */
         
         if (e.code === 'Space') {
             e.preventDefault();
